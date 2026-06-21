@@ -23,7 +23,6 @@ export async function GET() {
     const userName = settings["google_user_name"] || "Your";
 
     if (!userId) {
-      // Not connected yet
       return NextResponse.json({ connected: false, memories: [], rails: [], banners: [] });
     }
 
@@ -85,7 +84,7 @@ export async function GET() {
       {
         id: "rail-recent",
         title: `${userName}'s Recent Memories`,
-        subtitle: `${memories.length} photos from Google Photos`,
+        subtitle: `${memories.length} photos synced`,
         type: "time",
         slug: "recent-memories",
         memoryIds: take(20),
@@ -104,7 +103,7 @@ export async function GET() {
         type: "emotional",
         slug: "favourites",
         memoryIds: memories.filter((m) => m.isFavorite).map((m) => m.id).slice(0, 20)
-          .concat(take(20, 20)), // pad with recent if few favourites
+          .concat(take(20, 20)),
         rankingScore: 95,
         isActive: true,
         isPinned: false,
@@ -116,7 +115,7 @@ export async function GET() {
       {
         id: "rail-discovery",
         title: "Rediscover",
-        subtitle: "Hidden gems from years ago",
+        subtitle: "Hidden gems from your library",
         type: "ai_discovery",
         slug: "rediscover",
         memoryIds: shuffle(ids).slice(0, 20),
@@ -149,7 +148,7 @@ export async function GET() {
         subtitle: "Photos from years past",
         type: "time",
         slug: "throwback",
-        memoryIds: take(20, 40),
+        memoryIds: take(20, 5),
         rankingScore: 80,
         isActive: true,
         isPinned: false,
@@ -160,23 +159,25 @@ export async function GET() {
       },
     ].filter((r) => r.memoryIds.length > 0);
 
-    // Build hero banner from first memory
+    // Build cinematic hero banner from most recent memory
     const hero = memories[0];
     const banners = hero
       ? [
           {
             id: "banner-main",
             title: hero.title,
-            subtitle: hero.capturedAt ? new Date(hero.capturedAt).toLocaleDateString("en-AU", { year: "numeric", month: "long" }) : "",
-            description: `${memories.length} memories synced from Google Photos`,
+            subtitle: hero.capturedAt
+              ? new Date(hero.capturedAt).toLocaleDateString("en-AU", { year: "numeric", month: "long" })
+              : "",
+            description: `${memories.length} memories in your collection`,
             mediaUrl: hero.mediaUrl,
             thumbnailUrl: hero.thumbnailUrl,
             mediaType: hero.mediaType,
             ctaButtons: [
-              { label: "Watch Now", action: "play", memoryId: hero.id },
-              { label: "My Collection", action: "navigate", href: "/vault" },
+              { label: "Watch Now", action: "play", memoryId: hero.id, variant: "primary" },
+              { label: "My Collection", action: "navigate", href: "/vault", variant: "secondary" },
             ],
-            gradient: "from-black/80 via-black/40 to-transparent",
+            gradient: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.1) 75%, transparent 100%)",
             isActive: true,
             position: 0,
           },
