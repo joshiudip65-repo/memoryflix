@@ -27,9 +27,9 @@ export default function RailSlider({ rail, memories, variant = "default" }: Rail
   return (
     <>
       <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        initial={{ y: 12 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
         className="relative py-4"
       >
         {/* Rail header */}
