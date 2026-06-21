@@ -41,14 +41,12 @@ export default function HeroBanner({ banners }: HeroBannerProps) {
       case "relive":
       case "watch_story":
       case "play_trailer":
-        // Navigate to journey or a detail view
         router.push("/journey");
         break;
       case "continue":
         router.push("/home");
         break;
       case "share":
-        // Copy link placeholder
         if (navigator.clipboard) {
           navigator.clipboard.writeText(window.location.href);
         }
@@ -67,9 +65,9 @@ export default function HeroBanner({ banners }: HeroBannerProps) {
       <AnimatePresence mode="wait">
         <motion.div
           key={banner.id}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
+          initial={{ scale: 1.05 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0.98 }}
           transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
           className="absolute inset-0"
         >
@@ -92,12 +90,11 @@ export default function HeroBanner({ banners }: HeroBannerProps) {
         <AnimatePresence mode="wait">
           <motion.div
             key={banner.id + "-content"}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            exit={{ y: -10 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            {/* Subtitle tag */}
             <motion.p
               className="text-sm md:text-base font-medium tracking-wider uppercase mb-3"
               style={{ color: "var(--mf-accent)" }}
@@ -105,17 +102,14 @@ export default function HeroBanner({ banners }: HeroBannerProps) {
               {banner.subtitle}
             </motion.p>
 
-            {/* Title */}
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-cinema mb-4 max-w-3xl leading-tight">
               {banner.title}
             </h1>
 
-            {/* Description */}
             <p className="text-base md:text-lg text-gray-300 max-w-2xl mb-8 leading-relaxed">
               {banner.description}
             </p>
 
-            {/* CTA Buttons */}
             <div className="flex flex-wrap gap-3">
               {banner.ctaButtons.map((btn, i) => (
                 <motion.button
@@ -142,7 +136,6 @@ export default function HeroBanner({ banners }: HeroBannerProps) {
         </AnimatePresence>
       </div>
 
-      {/* Banner Indicators */}
       {banners.length > 1 && (
         <div className="absolute bottom-6 right-8 md:right-16 flex gap-2 z-10">
           {banners.map((_, i) => (
