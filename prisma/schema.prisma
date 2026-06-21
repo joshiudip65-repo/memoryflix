@@ -1,0 +1,499 @@
+// ============================================================================
+// MEMORYFLIX — COMPLETE DATABASE SCHEMA
+// Production-grade PostgreSQL schema via Prisma
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Users ---
+model User {
+  id             String           @id @default(cuid())
+  name           String
+  email          String           @unique
+  avatarUrl      String?
+  role           UserRole         @default(USER)
+  plan           SubscriptionPlan @default(FREE)
+  storageUsed    BigInt           @default(0)
+  storageLimit   BigInt           @default(10737418240) // 10 GB default
+  passwordHash   String?
+  isActive       Boolean          @default(true)
+  isSuspended    Boolean          @default(false)
+  joinedAt       DateTime         @default(now())
+  lastActiveAt   DateTime         @default(now())
+
+  preferences    UserPreferences?
+  memories       Memory[]
+  people         Person[]
+  stories        Story[]
+  notifications  Notification[]
+  recommendations RecommendationSignal[]
+  moderationReviews ModerationItem[] @relation("ReviewedBy")
+
+  @@index([email])
+  @@index([role])
+  @@index([plan])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum SubscriptionPlan {
+  FREE
+  PREMIUM
+  FAMILY
+}
+
+model UserPreferences {
+  id                    String  @id @default(cuid())
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                 String  @default("dark")
+  autoplayPreviews      Boolean @default(true)
+  notificationsEnabled  Boolean @default(true)
+  sensitiveContentFilter Boolean @default(false)
+  ambientMusicEnabled   Boolean @default(false)
+  tvModeEnabled         Boolean @default(false)
+  mutedPeople           String[] @default([])
+  hiddenMemories        String[] @default([])
+}
+
+// --- Memories ---
+model Memory {
+  id             String       @id @default(cuid())
+  title          String
+  description    String?
+  mediaType      MediaType
+  mediaUrl       String
+  thumbnailUrl   String
+  previewUrl     String?
+  duration       Int?         // seconds
+  width          Int?
+  height         Int?
+  fileSize       BigInt?
+  mimeType       String?
+  capturedAt     DateTime
+  uploadedAt     DateTime     @default(now())
+  status         MemoryStatus @default(PROCESSING)
+
+  // Scores
+  emotionalScore  Float    @default(0)
+  nostalgiaScore  Float    @default(0)
+  aiConfidence    Float    @default(0)
+  viewCount       Int      @default(0)
+  lastViewedAt    DateTime?
+  isFavorite      Boolean  @default(false)
+  isCoreMemory    Boolean  @default(false)
+
+  // Relations
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eraId           String?
+  era             Era?     @relation(fields: [eraId], references: [id])
+
+  // Location
+  locationLat     Float?
+  locationLng     Float?
+  locationCity    String?
+  locationCountry String?
+  locationLandmark String?
+
+  // AI data
+  emotions        MemoryEmotion[]
+  peopleTags      MemoryPersonTag[]
+  scenes          String[]  @default([])
+  aiTags          String[]  @default([])
+
+  // Many-to-many
+  genres          MemoryGenre[]
+  rails           MemoryRail[]
+  stories         StoryMemory[]
+  classifications AIClassification[]
+  moderationItems ModerationItem[]
+
+  // Embeddings (vector search)
+  embeddingId     String?
+
+  @@index([userId])
+  @@index([capturedAt])
+  @@index([status])
+  @@index([emotionalScore])
+  @@index([nostalgiaScore])
+  @@index([mediaType])
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+  GIF
+  CLIP
+  STORY
+  TRAILER
+}
+
+enum MemoryStatus {
+  ACTIVE
+  ARCHIVED
+  HIDDEN
+  DELETED
+  PROCESSING
+}
+
+model MemoryEmotion {
+  id         String  @id @default(cuid())
+  memoryId   String
+  memory     Memory  @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  emotion    EmotionType
+  confidence Float
+  intensity  Float
+
+  @@unique([memoryId, emotion])
+  @@index([emotion])
+}
+
+enum EmotionType {
+  JOY
+  NOSTALGIA
+  LOVE
+  EXCITEMENT
+  CALM
+  MELANCHOLY
+  GRATITUDE
+  WONDER
+  COMFORT
+  PRIDE
+  HUMOR
+  WARMTH
+  ADVENTURE
+  TENDERNESS
+  TRIUMPH
+}
+
+model MemoryPersonTag {
+  id         String  @id @default(cuid())
+  memoryId   String
+  memory     Memory  @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  personId   String
+  person     Person  @relation(fields: [personId], references: [id])
+  confidence Float
+  boundingBox Json?  // { x, y, w, h }
+
+  @@unique([memoryId, personId])
+}
+
+// --- People / Relationships ---
+model Person {
+  id                 String           @id @default(cuid())
+  name               String
+  avatarUrl          String?
+  relationshipType   RelationshipType
+  bio                String?
+  emotionalCloseness Float            @default(0)
+  firstMemoryDate    DateTime?
+  lastMemoryDate     DateTime?
+
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memoryTags         MemoryPersonTag[]
+  storyPeople        StoryPerson[]
+
+  @@index([userId])
+  @@index([emotionalCloseness])
+}
+
+enum RelationshipType {
+  FAMILY
+  FRIEND
+  PARTNER
+  COLLEAGUE
+  CHILDHOOD_FRIEND
+  PET
+  ACQUAINTANCE
+  OTHER
+}
+
+// --- Genres ---
+model Genre {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  description      String?
+  thumbnailUrl     String?
+  bannerUrl        String?
+  type             RailType
+  color            String    @default("#888888")
+  icon             String    @default("tag")
+  rankingPriority  Int       @default(50)
+  isVisible        Boolean   @default(true)
+  homepagePlacement Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  memories         MemoryGenre[]
+
+  @@index([type])
+  @@index([rankingPriority])
+}
+
+model MemoryGenre {
+  memoryId String
+  memory   Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  genreId  String
+  genre    Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([memoryId, genreId])
+}
+
+// --- Rails ---
+model Rail {
+  id             String    @id @default(cuid())
+  title          String
+  subtitle       String?
+  type           RailType
+  slug           String    @unique
+  icon           String?
+  rankingScore   Float     @default(50)
+  isActive       Boolean   @default(true)
+  isPinned       Boolean   @default(false)
+  position       Int       @default(0)
+  aiGenerated    Boolean   @default(false)
+  contextTrigger Json?     // { timeOfDay, weather, season, etc. }
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  memories       MemoryRail[]
+
+  @@index([isActive, position])
+}
+
+enum RailType {
+  EMOTIONAL
+  TIME
+  RELATIONSHIP
+  AI_DISCOVERY
+  TRAVEL
+  SEASONAL
+  TRENDING
+  CUSTOM
+}
+
+model MemoryRail {
+  memoryId String
+  memory   Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  railId   String
+  rail     Rail   @relation(fields: [railId], references: [id], onDelete: Cascade)
+
+  @@id([memoryId, railId])
+}
+
+// --- Hero Banners ---
+model HeroBanner {
+  id              String   @id @default(cuid())
+  title           String
+  subtitle        String?
+  description     String?
+  mediaUrl        String
+  thumbnailUrl    String?
+  mediaType       String   @default("photo")
+  ctaButtons      Json     @default("[]")
+  gradient        String?
+  isActive        Boolean  @default(true)
+  position        Int      @default(0)
+  startDate       DateTime?
+  endDate         DateTime?
+  targetMemoryId  String?
+  targetStoryId   String?
+  targetRailId    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive, position])
+}
+
+// --- Stories ---
+model Story {
+  id           String    @id @default(cuid())
+  title        String
+  description  String?
+  type         StoryType
+  thumbnailUrl String?
+  videoUrl     String?
+  duration     Int       @default(0)
+  aiGenerated  Boolean   @default(true)
+  music        String?
+  narration    String?
+  viewCount    Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memories     StoryMemory[]
+  people       StoryPerson[]
+
+  @@index([userId])
+  @@index([type])
+}
+
+enum StoryType {
+  RECAP
+  TRAILER
+  JOURNEY
+  RELATIONSHIP
+  YEARLY
+  CUSTOM
+}
+
+model StoryMemory {
+  storyId  String
+  story    Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  memoryId String
+  memory   Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  position Int    @default(0)
+
+  @@id([storyId, memoryId])
+}
+
+model StoryPerson {
+  storyId  String
+  story    Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  personId String
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, personId])
+}
+
+// --- Life Eras ---
+model Era {
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime?
+  thumbnailUrl    String?
+  color           String      @default("#888888")
+  dominantEmotion EmotionType?
+
+  userId          String
+  memories        Memory[]
+
+  @@index([userId])
+}
+
+// --- AI Classification ---
+model AIClassification {
+  id              String   @id @default(cuid())
+  memoryId        String
+  memory          Memory   @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  faces           Json     @default("[]")
+  emotions        Json     @default("[]")
+  scenes          Json     @default("[]")
+  objects         Json     @default("[]")
+  audioAnalysis   Json?
+  aestheticScore  Float    @default(0)
+  qualityScore    Float    @default(0)
+  processedAt     DateTime @default(now())
+
+  @@index([memoryId])
+}
+
+// --- AI Clusters ---
+model AICluster {
+  id         String      @id @default(cuid())
+  name       String
+  type       ClusterType
+  memoryIds  String[]    @default([])
+  confidence Float       @default(0)
+  isApproved Boolean     @default(false)
+  mergedFrom String[]    @default([])
+  createdAt  DateTime    @default(now())
+
+  @@index([type])
+  @@index([isApproved])
+}
+
+enum ClusterType {
+  EMOTION
+  SCENE
+  PERSON
+  TIME
+  LOCATION
+}
+
+// --- Recommendation Signals ---
+model RecommendationSignal {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memoryId            String
+  watchDuration       Int      @default(0)
+  rewatchCount        Int      @default(0)
+  isFavorited         Boolean  @default(false)
+  isShared            Boolean  @default(false)
+  pauseCount          Int      @default(0)
+  emotionalEngagement Float    @default(0)
+  timeOfDay           String?
+  context             String?
+  createdAt           DateTime @default(now())
+
+  @@index([userId, memoryId])
+  @@index([userId, createdAt])
+}
+
+// --- Moderation ---
+model ModerationItem {
+  id          String           @id @default(cuid())
+  memoryId    String
+  memory      Memory           @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  reportedBy  String?
+  reason      String
+  status      ModerationStatus @default(PENDING)
+  aiSeverity  Float            @default(0)
+  createdAt   DateTime         @default(now())
+  reviewedAt  DateTime?
+  reviewedById String?
+  reviewedBy  User?            @relation("ReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status])
+  @@index([aiSeverity])
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+// --- Notifications ---
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  body        String
+  memoryId    String?
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  sentAt      DateTime?
+  isActive    Boolean          @default(true)
+
+  @@index([userId, scheduledAt])
+  @@index([type])
+}
+
+enum NotificationType {
+  NOSTALGIA
+  ANNIVERSARY
+  EMOTIONAL
+  SEASONAL
+  SYSTEM
+}

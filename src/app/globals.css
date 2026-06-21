@@ -1,0 +1,250 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   MEMORYFLIX — CINEMATIC DESIGN SYSTEM
+   Netflix-dark theme with emotional warmth
+   ============================================================================ */
+
+:root {
+  /* Core palette */
+  --mf-black: #0a0a0a;
+  --mf-black-light: #141414;
+  --mf-black-card: #1a1a1a;
+  --mf-black-elevated: #222222;
+  --mf-gray-900: #2a2a2a;
+  --mf-gray-800: #333333;
+  --mf-gray-700: #444444;
+  --mf-gray-600: #666666;
+  --mf-gray-500: #888888;
+  --mf-gray-400: #aaaaaa;
+  --mf-gray-300: #cccccc;
+  --mf-gray-200: #e0e0e0;
+  --mf-white: #f5f5f5;
+
+  /* Brand accent — warm cinematic gold */
+  --mf-accent: #e5a00d;
+  --mf-accent-light: #f0c040;
+  --mf-accent-dark: #b87d08;
+  --mf-accent-glow: rgba(229, 160, 13, 0.25);
+
+  /* Emotional palette */
+  --mf-joy: #fbbf24;
+  --mf-love: #f472b6;
+  --mf-calm: #60a5fa;
+  --mf-nostalgia: #c084fc;
+  --mf-excitement: #f97316;
+  --mf-warmth: #fb923c;
+  --mf-comfort: #a78bfa;
+  --mf-adventure: #34d399;
+  --mf-melancholy: #818cf8;
+  --mf-pride: #fbbf24;
+
+  /* Semantic */
+  --mf-success: #22c55e;
+  --mf-warning: #f59e0b;
+  --mf-error: #ef4444;
+  --mf-info: #3b82f6;
+
+  /* Gradients */
+  --mf-gradient-hero: linear-gradient(180deg, transparent 0%, rgba(10,10,10,0.6) 50%, #0a0a0a 100%);
+  --mf-gradient-card: linear-gradient(180deg, transparent 0%, rgba(10,10,10,0.9) 100%);
+  --mf-gradient-accent: linear-gradient(135deg, var(--mf-accent) 0%, var(--mf-accent-light) 100%);
+  --mf-gradient-warm: linear-gradient(135deg, #e5a00d 0%, #f472b6 100%);
+  --mf-gradient-cool: linear-gradient(135deg, #60a5fa 0%, #c084fc 100%);
+
+  /* Shadows */
+  --mf-shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --mf-shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --mf-shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --mf-shadow-glow: 0 0 20px var(--mf-accent-glow);
+
+  /* Typography */
+  --mf-font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --mf-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Spacing */
+  --mf-nav-height: 64px;
+  --mf-bottom-nav-height: 72px;
+  --mf-sidebar-width: 260px;
+
+  /* Transitions */
+  --mf-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mf-transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mf-transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mf-transition-cinematic: 800ms cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* Border radius */
+  --mf-radius-sm: 6px;
+  --mf-radius-md: 10px;
+  --mf-radius-lg: 16px;
+  --mf-radius-xl: 24px;
+  --mf-radius-full: 9999px;
+
+  /* Background */
+  --background: var(--mf-black);
+  --foreground: var(--mf-white);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-mf-accent: var(--mf-accent);
+  --color-mf-accent-light: var(--mf-accent-light);
+  --color-mf-black: var(--mf-black);
+  --color-mf-black-light: var(--mf-black-light);
+  --color-mf-black-card: var(--mf-black-card);
+  --color-mf-black-elevated: var(--mf-black-elevated);
+  --color-mf-gray-900: var(--mf-gray-900);
+  --color-mf-gray-800: var(--mf-gray-800);
+  --color-mf-gray-700: var(--mf-gray-700);
+  --color-mf-gray-600: var(--mf-gray-600);
+  --color-mf-gray-500: var(--mf-gray-500);
+  --color-mf-gray-400: var(--mf-gray-400);
+  --color-mf-gray-300: var(--mf-gray-300);
+  --color-mf-white: var(--mf-white);
+  --color-mf-joy: var(--mf-joy);
+  --color-mf-love: var(--mf-love);
+  --color-mf-calm: var(--mf-calm);
+  --color-mf-nostalgia: var(--mf-nostalgia);
+  --color-mf-excitement: var(--mf-excitement);
+  --color-mf-warmth: var(--mf-warmth);
+  --color-mf-comfort: var(--mf-comfort);
+  --color-mf-adventure: var(--mf-adventure);
+  --color-mf-success: var(--mf-success);
+  --color-mf-warning: var(--mf-warning);
+  --color-mf-error: var(--mf-error);
+  --color-mf-info: var(--mf-info);
+  --font-sans: var(--mf-font-body);
+  --font-display: var(--mf-font-display);
+}
+
+/* --- Global Resets --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mf-gray-700) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--mf-gray-700);
+  border-radius: var(--mf-radius-full);
+}
+
+html {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-family: var(--mf-font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* --- Glass Morphism Utility --- */
+.glass {
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+  background: rgba(26, 26, 26, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* --- Cinematic Gradient Overlays --- */
+.gradient-hero-bottom {
+  background: var(--mf-gradient-hero);
+}
+
+.gradient-card {
+  background: var(--mf-gradient-card);
+}
+
+/* --- Shimmer Loading Animation --- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--mf-gray-900) 25%, var(--mf-gray-800) 50%, var(--mf-gray-900) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* --- Rail Horizontal Scroll --- */
+.rail-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding: 8px 0;
+}
+
+.rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.rail-scroll > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* --- Cinematic Text Shadow --- */
+.text-cinema {
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Glow Effects --- */
+.glow-accent {
+  box-shadow: 0 0 20px var(--mf-accent-glow), 0 0 40px rgba(229, 160, 13, 0.1);
+}
+
+.glow-text {
+  text-shadow: 0 0 10px var(--mf-accent-glow);
+}
+
+/* --- Emotion Colors Utility --- */
+.emotion-joy { color: var(--mf-joy); }
+.emotion-love { color: var(--mf-love); }
+.emotion-calm { color: var(--mf-calm); }
+.emotion-nostalgia { color: var(--mf-nostalgia); }
+.emotion-excitement { color: var(--mf-excitement); }
+.emotion-warmth { color: var(--mf-warmth); }
+.emotion-comfort { color: var(--mf-comfort); }
+.emotion-adventure { color: var(--mf-adventure); }
+
+/* --- Hide scrollbar utility --- */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- Fade mask for rails --- */
+.fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+}
