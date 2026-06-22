@@ -8,39 +8,39 @@ const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
  * POST /api/photos/ai-categorize
  * Body: { memoryIds?: string[], limit?: number }
  *
- * Runs Claude Haiku Vision on each photo thumbnail and:
- *  - Creates Emotion, Year, and People Genre records (if not exist)
- *  - Links each memory to its genres via MemoryGenre
- *  - Creates MemoryEmotion records
- *  - Updates Memory.aiTags, scenes, emotionalScore, nostalgiaScore, aiConfidence
+ * Runs Claude claude-haiku-4-5-20251001 Vision on each photo thumbnail and:
+ *  • Creates Emotion, Year, and People Genre records (if not exist)
+ *  • Links each memory to its genres via MemoryGenre
+ *  • Creates MemoryEmotion records
+ *  • Updates Memory.aiTags, scenes, emotionalScore, nostalgiaScore, aiConfidence
  *
  * If memoryIds is omitted, processes up to `limit` (default 50) uncategorised
  * memories (aiConfidence < 0.5) for the current user.
  */
 
-// Emotion metadata
+// ─── Emotion metadata ────────────────────────────────────────────────────────
 
 const EMOTION_META: Record<string, { label: string; color: string }> = {
-  JOY:        { label: "Joy & Happiness",    color: "#FFD700" },
-  NOSTALGIA:  { label: "Nostalgia",           color: "#C8A882" },
-  LOVE:       { label: "Love & Romance",      color: "#FF4A6A" },
-  ADVENTURE:  { label: "Adventure",           color: "#2ECC71" },
-  CALM:       { label: "Calm & Peaceful",     color: "#74B9FF" },
-  EXCITEMENT: { label: "Excitement",          color: "#FF6B35" },
-  WARMTH:     { label: "Warmth & Family",     color: "#FF8C42" },
-  GRATITUDE:  { label: "Gratitude",           color: "#A29BFE" },
-  WONDER:     { label: "Wonder & Awe",        color: "#6C5CE7" },
-  PRIDE:      { label: "Pride & Achievement", color: "#E17055" },
-  MELANCHOLY: { label: "Melancholy",          color: "#636E72" },
-  COMFORT:    { label: "Comfort",             color: "#FDCB6E" },
-  HUMOR:      { label: "Humour",              color: "#00CEC9" },
-  TENDERNESS: { label: "Tenderness",          color: "#FD79A8" },
-  TRIUMPH:    { label: "Triumph",             color: "#D63031" },
+  JOY:          { label: "Joy & Happiness",    color: "#FFD700" },
+  NOSTALGIA:    { label: "Nostalgia",           color: "#C8A882" },
+  LOVE:         { label: "Love & Romance",      color: "#FF4A6A" },
+  ADVENTURE:    { label: "Adventure",           color: "#2ECC71" },
+  CALM:         { label: "Calm & Peaceful",     color: "#74B9FF" },
+  EXCITEMENT:   { label: "Excitement",          color: "#FF6B35" },
+  WARMTH:       { label: "Warmth & Family",     color: "#FF8C42" },
+  GRATITUDE:    { label: "Gratitude",           color: "#A29BFE" },
+  WONDER:       { label: "Wonder & Awe",        color: "#6C5CE7" },
+  PRIDE:        { label: "Pride & Achievement", color: "#E17055" },
+  MELANCHOLY:   { label: "Melancholy",          color: "#636E72" },
+  COMFORT:      { label: "Comfort",             color: "#FDCB6E" },
+  HUMOR:        { label: "Humour",              color: "#00CEC9" },
+  TENDERNESS:   { label: "Tenderness",          color: "#FD79A8" },
+  TRIUMPH:      { label: "Triumph",             color: "#D63031" },
 };
 
 const VALID_EMOTIONS = Object.keys(EMOTION_META);
 
-// Claude Vision call
+// ─── Claude Vision call ──────────────────────────────────────────────────────
 
 interface ClassificationResult {
   primaryEmotion: string;
@@ -70,10 +70,9 @@ async function classifyPhoto(
   thumbnailUrl: string,
   apiKey: string
 ): Promise<ClassificationResult> {
-  const emotionList = VALID_EMOTIONS.join(", ");
   const prompt = `You are a memory and emotion analyst. Study this photo carefully and return ONLY a valid JSON object (no markdown, no code fences, no explanation) with these exact fields:
 {
-  "primaryEmotion": "<one of: ${emotionList}>",
+  "primaryEmotion": "<one of: ${VALID_EMOTIONS.join(", ")}>",
   "secondaryEmotions": ["<up to 2 more from the same list>"],
   "scenes": ["<2-4 descriptors: outdoor/indoor/beach/mountain/urban/celebration/portrait/food/travel/nature/family/couple/solo/group/wedding/graduation/birthday/holiday>"],
   "peopleCount": <integer, 0 if no people visible>,
@@ -83,7 +82,7 @@ async function classifyPhoto(
   "nostalgiaScore": <integer 30-100, how nostalgic it feels>
 }`;
 
-  // Fetch the image and send as base64 - more reliable than URL for temp Google Photos links
+  // Fetch the image and send as base64 — more reliable than URL for temp Google Photos links
   const { data: imageData, mediaType } = await fetchImageBase64(thumbnailUrl);
 
   const res = await fetch(ANTHROPIC_API, {
@@ -125,7 +124,7 @@ async function classifyPhoto(
   return JSON.parse(jsonStr) as ClassificationResult;
 }
 
-// Upsert a Genre, return its id
+// ─── Upsert a Genre, return its id ──────────────────────────────────────────
 
 async function upsertGenre(
   db: ReturnType<typeof import("@/lib/db").getDb>,
@@ -149,7 +148,7 @@ async function upsertGenre(
   return res.rows[0].id as string;
 }
 
-// Route handler
+// ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -345,6 +344,6 @@ export async function POST(req: NextRequest) {
     processed,
     errors,
     collectionsCreated: genresCreated.size,
-    message: `Analysed ${processed} memories - ${genresCreated.size} collections created`,
+    message: `Analysed ${processed} memories · ${genresCreated.size} collections created`,
   });
 }
