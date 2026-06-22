@@ -29,14 +29,25 @@ export default function HomePage() {
     setLoading(true);
     fetch("/api/home")
       .then((r) => r.json())
-      .then((data) => { setHomeData(data); setLoading(false); })
-      .catch(() => { setHomeData({ connected: false, memories: [], rails: [], banners: [] }); setLoading(false); });
+      .then((data) => {
+        setHomeData(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setHomeData({ connected: false, memories: [], rails: [], banners: [] });
+        setLoading(false);
+      });
   }, []);
 
-  useEffect(() => { fetchHomeData(); }, [fetchHomeData]);
+  useEffect(() => {
+    fetchHomeData();
+  }, [fetchHomeData]);
 
-  const handleSyncComplete = useCallback(() => { fetchHomeData(); }, [fetchHomeData]);
+  const handleSyncComplete = useCallback(() => {
+    fetchHomeData();
+  }, [fetchHomeData]);
 
+  // Decide which data to use
   const useMockData = !homeData?.connected || (homeData?.memories?.length ?? 0) === 0;
 
   const allMemories: Memory[] = useMockData
@@ -46,10 +57,14 @@ export default function HomePage() {
   const memoryMap = new Map(allMemories.map((m) => [m.id, m]));
 
   const getRailMemories = (rail: Rail) =>
-    (rail.memoryIds || []).map((id) => memoryMap.get(id)).filter(Boolean) as Memory[];
+    (rail.memoryIds || [])
+      .map((id) => memoryMap.get(id))
+      .filter(Boolean) as Memory[];
 
   const rails = useMockData ? getActiveRails() : (homeData?.rails ?? []);
-  const banners = useMockData ? getActiveBanners() : (homeData?.banners as ReturnType<typeof getActiveBanners> ?? []);
+  const banners = useMockData
+    ? getActiveBanners()
+    : (homeData?.banners as ReturnType<typeof getActiveBanners> ?? []);
 
   if (loading) {
     return (
@@ -64,17 +79,23 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
+      {/* Hero Banner */}
       <HeroBanner banners={banners} />
 
+      {/* Rails Section */}
       <div className="-mt-16 relative z-10 space-y-2">
 
-        {/* Google Photos Connect Banner */}
+        {/* ── Google Photos Connect Banner (not yet connected) ── */}
         <AnimatePresence>
           {!homeData?.connected && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               className="mx-6 md:mx-16 mb-4 rounded-2xl overflow-hidden"
-              style={{ background: "linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%)" }}
+              style={{
+                background: "linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%)",
+              }}
             >
               <div className="px-6 py-5 flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex-1">
@@ -85,10 +106,13 @@ export default function HomePage() {
                       <circle cx="8"  cy="16" r="5" fill="#34a853" />
                       <circle cx="16" cy="16" r="5" fill="#4285f4" />
                     </svg>
-                    <span className="text-white font-semibold text-base">Import from Google Photos</span>
+                    <span className="text-white font-semibold text-base">
+                      Import from Google Photos
+                    </span>
                   </div>
                   <p className="text-white/80 text-sm">
-                    Pull your real memories from Google Photos — AI will auto-categorise them into cinematic collections.
+                    Pull your real memories from Google Photos — AI will auto-categorise
+                    them into cinematic collections.
                   </p>
                 </div>
                 <GooglePhotosSync onSyncComplete={handleSyncComplete} />
@@ -97,33 +121,62 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* Sync status bar */}
-        {homeData?.connected && homeData?.lastSync && (
+        {/* ── Sync status bar (connected) ── */}
+        {homeData?.connected && (
           <div className="px-6 md:px-16 mb-2 flex items-center gap-2 flex-wrap">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-xs text-white/40">
-              {homeData.totalCount} photos · Last synced{" "}
-              {new Date(homeData.lastSync).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              {homeData.totalCount} photos from Google Photos · Last synced{" "}
+              {new Date(homeData.lastSync).toLocaleDateString("en-AU", {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
             <GooglePhotosSync onSyncComplete={handleSyncComplete} compact />
           </div>
         )}
 
-        {rails[0] && <RailSlider rail={rails[0]} memories={getRailMemories(rails[0])} variant="featured" />}
+        {/* ── First rail — featured variant ── */}
+        {rails[0] && (
+          <RailSlider
+            rail={rails[0]}
+            memories={getRailMemories(rails[0])}
+            variant="featured"
+          />
+        )}
 
-        {/* AI Stories Rail */}
-        <motion.section initial={{ y: 20 }} animate={{ y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="py-4">
+        {/* ── AI Stories Rail ── */}
+        <motion.section
+          initial={{ y: 20 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="py-4"
+        >
           <div className="px-6 md:px-16 mb-3">
-            <h2 className="text-xl md:text-2xl font-bold text-white">AI-Generated Stories</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Cinematic recaps crafted by AI from your memories</p>
+            <h2 className="text-xl md:text-2xl font-bold text-white">
+              AI-Generated Stories
+            </h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Cinematic recaps crafted by AI from your memories
+            </p>
           </div>
           <div className="rail-scroll px-6 md:px-16 fade-right">
-            {mockStories.map((story, i) => <StoryCard key={story.id} story={story} index={i} />)}
+            {mockStories.map((story, i) => (
+              <StoryCard key={story.id} story={story} index={i} />
+            ))}
           </div>
         </motion.section>
 
+        {/* ── Remaining rails ── */}
         {rails.slice(1).map((rail, i) => (
-          <RailSlider key={rail.id} rail={rail} memories={getRailMemories(rail)} variant={i % 3 === 0 ? "wide" : i % 3 === 1 ? "default" : "tall"} />
+          <RailSlider
+            key={rail.id}
+            rail={rail}
+            memories={getRailMemories(rail)}
+            variant={i % 3 === 0 ? "wide" : i % 3 === 1 ? "default" : "tall"}
+          />
         ))}
 
         <div className="h-8" />
