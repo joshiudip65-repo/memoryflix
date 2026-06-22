@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 /**
  * GET /api/photos/setup
- * Redirects to Google OAuth to request Photos Library access.
+ * Redirects to Google OAuth to request Photos Picker access.
  * Visit this URL in the browser to authorize Google Photos.
  */
 export async function GET() {
@@ -14,13 +14,13 @@ export async function GET() {
     redirect_uri: redirectUri,
     response_type: "code",
     scope: [
-      "https://www.googleapis.com/auth/photoslibrary.readonly",
+      "https://www.googleapis.com/auth/photospicker.mediaitems.readonly",
       "openid",
       "profile",
       "email",
     ].join(" "),
     access_type: "offline",
-    prompt: "consent",  // Force consent to always get refresh_token
+    prompt: "consent",
   });
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
