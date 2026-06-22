@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+// Google Gemini Flash — free tier: 1,500 requests/day, no credit card required
+// Get your free key at: https://aistudio.google.com/app/apikey
+const GEMINI_API =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 /**
  * POST /api/photos/ai-categorize
  * Body: { memoryIds?: string[], limit?: number }
  *
- * Runs Claude claude-haiku-4-5-20251001 Vision on each photo thumbnail and:
+ * Runs Gemini 1.5 Flash Vision (FREE) on each photo thumbnail and:
  *  • Creates Emotion, Year, and People Genre records (if not exist)
  *  • Links each memory to its genres via MemoryGenre
  *  • Creates MemoryEmotion records
@@ -21,26 +23,26 @@ const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 // ─── Emotion metadata ────────────────────────────────────────────────────────
 
 const EMOTION_META: Record<string, { label: string; color: string }> = {
-  JOY:          { label: "Joy & Happiness",    color: "#FFD700" },
-  NOSTALGIA:    { label: "Nostalgia",           color: "#C8A882" },
-  LOVE:         { label: "Love & Romance",      color: "#FF4A6A" },
-  ADVENTURE:    { label: "Adventure",           color: "#2ECC71" },
-  CALM:         { label: "Calm & Peaceful",     color: "#74B9FF" },
-  EXCITEMENT:   { label: "Excitement",          color: "#FF6B35" },
-  WARMTH:       { label: "Warmth & Family",     color: "#FF8C42" },
-  GRATITUDE:    { label: "Gratitude",           color: "#A29BFE" },
-  WONDER:       { label: "Wonder & Awe",        color: "#6C5CE7" },
-  PRIDE:        { label: "Pride & Achievement", color: "#E17055" },
-  MELANCHOLY:   { label: "Melancholy",          color: "#636E72" },
-  COMFORT:      { label: "Comfort",             color: "#FDCB6E" },
-  HUMOR:        { label: "Humour",              color: "#00CEC9" },
-  TENDERNESS:   { label: "Tenderness",          color: "#FD79A8" },
-  TRIUMPH:      { label: "Triumph",             color: "#D63031" },
+  JOY:        { label: "Joy & Happiness",    color: "#FFD700" },
+  NOSTALGIA:  { label: "Nostalgia",           color: "#C8A882" },
+  LOVE:       { label: "Love & Romance",      color: "#FF4A6A" },
+  ADVENTURE:  { label: "Adventure",           color: "#2ECC71" },
+  CALM:       { label: "Calm & Peaceful",     color: "#74B9FF" },
+  EXCITEMENT: { label: "Excitement",          color: "#FF6B35" },
+  WARMTH:     { label: "Warmth & Family",     color: "#FF8C42" },
+  GRATITUDE:  { label: "Gratitude",           color: "#A29BFE" },
+  WONDER:     { label: "Wonder & Awe",        color: "#6C5CE7" },
+  PRIDE:      { label: "Pride & Achievement", color: "#E17055" },
+  MELANCHOLY: { label: "Melancholy",          color: "#636E72" },
+  COMFORT:    { label: "Comfort",             color: "#FDCB6E" },
+  HUMOR:      { label: "Humour",              color: "#00CEC9" },
+  TENDERNESS: { label: "Tenderness",          color: "#FD79A8" },
+  TRIUMPH:    { label: "Triumph",             color: "#D63031" },
 };
 
 const VALID_EMOTIONS = Object.keys(EMOTION_META);
 
-// ─── Claude Vision call ──────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ClassificationResult {
   primaryEmotion: string;
@@ -53,26 +55,30 @@ interface ClassificationResult {
   nostalgiaScore: number;
 }
 
-/** Fetch a thumbnail URL and return it as base64 + MIME type */
+// ─── Fetch image as base64 ───────────────────────────────────────────────────
+
 async function fetchImageBase64(
   url: string
-): Promise<{ data: string; mediaType: string }> {
+): Promise<{ data: string; mimeType: string }> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
   const buffer = await res.arrayBuffer();
   const data = Buffer.from(buffer).toString("base64");
   const ct = res.headers.get("content-type") || "image/jpeg";
-  const mediaType = ct.split(";")[0].trim();
-  return { data, mediaType };
+  const mimeType = ct.split(";")[0].trim();
+  return { data, mimeType };
 }
+
+// ─── Gemini 1.5 Flash Vision call ───────────────────────────────────────────
 
 async function classifyPhoto(
   thumbnailUrl: string,
   apiKey: string
 ): Promise<ClassificationResult> {
+  const emotionList = VALID_EMOTIONS.join(", ");
   const prompt = `You are a memory and emotion analyst. Study this photo carefully and return ONLY a valid JSON object (no markdown, no code fences, no explanation) with these exact fields:
 {
-  "primaryEmotion": "<one of: ${VALID_EMOTIONS.join(", ")}>",
+  "primaryEmotion": "<one of: ${emotionList}>",
   "secondaryEmotions": ["<up to 2 more from the same list>"],
   "scenes": ["<2-4 descriptors: outdoor/indoor/beach/mountain/urban/celebration/portrait/food/travel/nature/family/couple/solo/group/wedding/graduation/birthday/holiday>"],
   "peopleCount": <integer, 0 if no people visible>,
@@ -82,42 +88,42 @@ async function classifyPhoto(
   "nostalgiaScore": <integer 30-100, how nostalgic it feels>
 }`;
 
-  // Fetch the image and send as base64 — more reliable than URL for temp Google Photos links
-  const { data: imageData, mediaType } = await fetchImageBase64(thumbnailUrl);
+  // Fetch the image and send as inline base64 — reliable for temp Google Photos URLs
+  const { data: imageData, mimeType } = await fetchImageBase64(thumbnailUrl);
 
-  const res = await fetch(ANTHROPIC_API, {
+  const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 400,
-      messages: [
+      contents: [
         {
-          role: "user",
-          content: [
+          parts: [
             {
-              type: "image",
-              source: { type: "base64", media_type: mediaType, data: imageData },
+              inline_data: {
+                mime_type: mimeType,
+                data: imageData,
+              },
             },
-            { type: "text", text: prompt },
+            { text: prompt },
           ],
         },
       ],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 400,
+        responseMimeType: "application/json",
+      },
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Claude ${res.status}: ${err}`);
+    throw new Error(`Gemini ${res.status}: ${err}`);
   }
 
   const responseData = await res.json();
-  const raw = responseData.content?.[0]?.text;
-  if (!raw) throw new Error("Empty response from Claude");
+  const raw = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!raw) throw new Error("Empty response from Gemini");
 
   // Strip any accidental markdown fences
   const jsonStr = raw.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
@@ -151,10 +157,13 @@ async function upsertGenre(
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not set. Add it in your Vercel environment variables." },
+      {
+        error:
+          "GEMINI_API_KEY is not set. Get a free key at https://aistudio.google.com/app/apikey and add it to your Vercel environment variables.",
+      },
       { status: 500 }
     );
   }
